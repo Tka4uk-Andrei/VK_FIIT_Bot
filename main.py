@@ -103,6 +103,7 @@ while True:
             #                                                forward_messages=reform_forward_msg(event.message.fwd_messages))
 
             print ('Event handling ended')
-    except Exception:
+    except Exception as e:
+        print (e)
         pass
     print ('The End')
