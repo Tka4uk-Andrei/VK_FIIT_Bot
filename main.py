@@ -1,25 +1,26 @@
 import vk_api
 from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
-import requests
-
-# Global constants
-VK_API_KEY = "28f2396ab6b6ca0d2cbc63caec4561b3b3005aeab6d89f0432578344fe0b181409b77e043302013be1655"
-VK_VERSION = "5.103"
-VK_GROUP_ID = "club191500224"
 
 # Path to data files
 SUBSCRIPTION_ID_FILE_NAME = "data/subscribedIds.txt"
 LATEST_MSG_ID_FILE_NAME = "data/latest_msg_id.txt"
+CONFIG_FILE_NAME = "data/config.txt"
 
 
 def reform_attachments(attachments):
     attachment_arr = []
     if attachments.__len__() > 0:
         for attachment in attachments:
-            attachment_arr.append(str(attachment[u'type'] + \
-                             str(attachment[attachment[u'type']][u'owner_id']) + '_' + \
-                             str(attachment[attachment[u'type']][u'id']) + '_' + \
-                             attachment[attachment[u'type']][u'access_key']))
+            if u'owner_id' in attachment[u'type'] and u'id' in attachment[u'type']:
+                if u'access_key' in attachment[u'type']:
+                    attachment_arr.append(str(attachment[u'type'] + \
+                                              str(attachment[attachment[u'type']][u'owner_id']) + '_' + \
+                                              str(attachment[attachment[u'type']][u'id']) + '_' + \
+                                              attachment[attachment[u'type']][u'access_key']))
+                else:
+                    attachment_arr.append(str(attachment[u'type'] + \
+                                              str(attachment[attachment[u'type']][u'owner_id']) + '_' + \
+                                              str(attachment[attachment[u'type']][u'id'])))
     return attachment_arr
 
 
@@ -38,6 +39,12 @@ def reform_forward_msg(forward_msgs):
 
 
 print ('Launching...')
+
+# Read global constants
+with open(CONFIG_FILE_NAME, "r") as configs:
+    VK_API_KEY = configs.readline()[0:-1]
+    VK_VERSION = configs.readline()[0:-1]
+    VK_GROUP_ID = configs.readline()
 
 vkSession = vk_api.VkApi(token=VK_API_KEY)
 sessionApi = vkSession.get_api()
@@ -73,10 +80,11 @@ while True:
                         connectedIds.append(fromId)
                         with open(SUBSCRIPTION_ID_FILE_NAME, "w") as subscribedIds:
                             for userId in connectedIds:
-                                subscribedIds.write(str(userId))
+                                subscribedIds.write(str(userId) + '\n')
 
                     # mark message as read
-                    sessionApi.messages.markAsRead(start_message_id=[event.message[u'id']], peer_id=event.message[u'peer_id'])
+                    sessionApi.messages.markAsRead(start_message_id=[event.message[u'id']],
+                                                   peer_id=event.message[u'peer_id'])
 
                 # handle message from group chat
                 elif event.from_chat and event.message.text != '' and event.message.text[0:2] == '//':
@@ -97,4 +105,4 @@ while True:
             print ('Event handling ended')
     except Exception:
         pass
-    print ('The End')
+print ('The End')
