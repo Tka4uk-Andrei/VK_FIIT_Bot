@@ -55,43 +55,46 @@ with open(LATEST_MSG_ID_FILE_NAME, "r") as msgId:
     for line in msgId:
         messageCounter = int(line)
 
-print ('Server started listening')
-for event in longpoll.listen():
-    print ('Event handling start...')
-    if event.type == VkBotEventType.MESSAGE_NEW:
-        # handle message from subscribed user
-        if event.from_user:
-            # receive users id
-            fromId = event.obj.message[u'from_id']
-            print ('message from user with id ' + str(event.obj.message[u'from_id']) + ' received')
+while True:
+    print ('Server started listening')
+    try:
+        for event in longpoll.listen():
+            print ('Event handling start...')
+            if event.type == VkBotEventType.MESSAGE_NEW:
+                # handle message from subscribed user
+                if event.from_user:
+                    # receive users id
+                    fromId = event.obj.message[u'from_id']
+                    print ('message from user with id ' + str(event.obj.message[u'from_id']) + ' received')
 
-            # if from_id is new, we'll add it to special list, then write updated info to file
-            if not (fromId in connectedIds):
-                print('new user connected / record added')
-                connectedIds.append(fromId)
-                with open(SUBSCRIPTION_ID_FILE_NAME, "w") as subscribedIds:
+                    # if from_id is new, we'll add it to special list, then write updated info to file
+                    if not (fromId in connectedIds):
+                        print('new user connected / record added')
+                        connectedIds.append(fromId)
+                        with open(SUBSCRIPTION_ID_FILE_NAME, "w") as subscribedIds:
+                            for userId in connectedIds:
+                                subscribedIds.write(str(userId))
+
+                    # mark message as read
+                    sessionApi.messages.markAsRead(start_message_id=[event.message[u'id']], peer_id=event.message[u'peer_id'])
+
+                # handle message from group chat
+                elif event.from_chat and event.message.text != '' and event.message.text[0:2] == '//':
+                    print ('message from chat')
+                    # notify subscribed users
                     for userId in connectedIds:
-                        subscribedIds.write(str(userId))
+                        # switch 'peer_id' to broadcast list
+                        # forward messages not supported by VK API for bots??? W H A T !? :\
+                        print(reform_attachments(event.message.attachments))
+                        print(reform_forward_msg(event.message.fwd_messages))
+                        sessionApi.messages.send(peer_id=userId,
+                                                 random_id=0,
+                                                 message=event.message.text,
+                                                 attachment=reform_attachments(event.message.attachments))
+            #                   ,
+            #                                                forward_messages=reform_forward_msg(event.message.fwd_messages))
 
-            # mark message as read
-            sessionApi.messages.markAsRead(start_message_id=[event.message[u'id']], peer_id=event.message[u'peer_id'])
-
-        # handle message from group chat
-        elif event.from_chat and event.message.text != '' and event.message.text[0:2] == '//':
-            print ('message from chat')
-            # notify subscribed users
-            for userId in connectedIds:
-                # switch 'peer_id' to broadcast list
-                # forward messages not supported by VK API for bots??? W H A T !? :\
-                print(reform_attachments(event.message.attachments))
-                print(reform_forward_msg(event.message.fwd_messages))
-                sessionApi.messages.send(peer_id=userId,
-                                         random_id=0,
-                                         message=event.message.text,
-                                         attachment=reform_attachments(event.message.attachments))
-    #                   ,
-    #                                                forward_messages=reform_forward_msg(event.message.fwd_messages))
-
-    print ('Event handling ended')
-
-print ('The End')
+            print ('Event handling ended')
+    except Exception:
+        pass
+    print ('The End')
