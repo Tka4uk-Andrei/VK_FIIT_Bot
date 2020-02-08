@@ -3,9 +3,9 @@ from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
 import requests
 
 # Global constants
-VK_API_KEY = "28f2396ab6b6ca0d2cbc63caec4561b3b3005aeab6d89f0432578344fe0b181409b77e043302013be1655"
+VK_API_KEY = "api access key here"
 VK_VERSION = "5.103"
-VK_GROUP_ID = "club191500224"
+VK_GROUP_ID = "group id"
 
 # Path to data files
 SUBSCRIPTION_ID_FILE_NAME = "data/subscribedIds.txt"
