@@ -5,16 +5,24 @@ class ConfigurationType:
         self.set_legacy()
 
     def set_json(self):
-        self.type = "json"
+        self.type = self.json()
 
     def set_legacy(self):
-        self.type = "legacy"
+        self.type = self.legacy()
 
     def get_config_type(self):
         return self.type
 
+    @staticmethod
+    def legacy():
+        return "legacy"
 
-class Configuration:
+    @staticmethod
+    def json():
+        return "json"
+
+
+class LegacyConfigurator:
 
     def __init__(self, config_type):
         # Path to data files
