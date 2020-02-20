@@ -2,7 +2,7 @@ import vk_api
 from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
 
 # Path to data files
-SUBSCRIPTION_ID_FILE_NAME = "data/subscribedIds.txt"
+SUBSCRIPTION_ID_FILE_NAME = "data/subscribed_ids.txt"
 LATEST_MSG_ID_FILE_NAME = "data/latest_msg_id.txt"
 CONFIG_FILE_NAME = "data/config.txt"
 
