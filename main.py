@@ -17,7 +17,7 @@ def reform_attachments(attachments):
     if attachments:
         for attachment in attachments:
             if 'owner_id' in attachment['type'] and 'id' in attachment['type']:
-                tpe = attachment['type']
+                type = attachment['type']
                 att = f'{type}{attachment[type]["owner_id"]}_{attachment[type]["id"]}'
                 if 'access_key' in attachment['type']:
                     att += f'_{attachment[type]["access_key"]}'
