@@ -1,12 +1,15 @@
 import logging
+from logging.handlers import RotatingFileHandler
+import threading
 
 import vk_api
 from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
 
 # Path to data files
-SUBSCRIPTION_ID_FILE_NAME = "data/subscribedIds.txt"
+SUBSCRIPTION_ID_FILE_NAME = "data/subscribed_ids.txt"
 LATEST_MSG_ID_FILE_NAME = "data/latest_msg_id.txt"
 CONFIG_FILE_NAME = "data/config.txt"
+APP_LOGGER = logging
 
 
 def reform_attachments(attachments):
@@ -35,12 +38,9 @@ def reform_forward_msg(forward_msgs):
     return forward_msg
 
 
-print ('Launching...')
-
-
 def load_settings():
     with open(CONFIG_FILE_NAME, "r") as configs:
-        api_key = configs.readline()[0:-1]
+        api_key = configs.readline().split(',')[0]
         group_id = configs.readline()
 
     vk_session = vk_api.VkApi(token=api_key)
@@ -54,29 +54,30 @@ def get_subscribers():
     with open(SUBSCRIPTION_ID_FILE_NAME, "r") as user_ids:
         return [int(lne) for lne in user_ids]
 
+
 def get_messages_ids():
-    messageCounter = 0
     # read message id from where you should start
     with open(LATEST_MSG_ID_FILE_NAME, "r") as msg_id:
         return [int(lne) for lne in msg_id]
 
 
 def main_loop(connected_ids, session_api, longpoll):
+    APP_LOGGER.info('Server started listening')
+
     while True:
-        logging.info('Server started listening')
         try:
             for event in longpoll.listen():
-                logging.info('Event handling start...')
+                APP_LOGGER.info('Event handling start...')
                 if event.type == VkBotEventType.MESSAGE_NEW:
                     # handle message from subscribed user
                     if event.from_user:
                         # receive users id
                         from_id = event.obj.message[u'from_id']
-                        logging.info(f'message from user with id {event.obj.message["from_id"]} received')
+                        APP_LOGGER.info(f'message from user with id {event.obj.message["from_id"]} received')
 
                         # if from_id is new, we'll add it to special list, then write updated info to file
                         if from_id not in connected_ids:
-                            logging.info('new user connected / record added')
+                            APP_LOGGER.info('new user connected / record added')
                             with open(SUBSCRIPTION_ID_FILE_NAME, "a") as f:
                                 f.write(f'\n{from_id}')
 
@@ -88,13 +89,13 @@ def main_loop(connected_ids, session_api, longpoll):
 
                     # handle message from group chat
                     elif event.from_chat and event.message.text != '' and event.message.text[0:2] == '//':
-                        logging.info('message from chat')
+                        APP_LOGGER.info('message from chat')
                         # notify subscribed users
                         for userId in connected_ids:
                             # switch 'peer_id' to broadcast list
                             # forward messages not supported by VK API for bots??? W H A T !? :\
-                            logging.info(reform_attachments(event.message.attachments))
-                            logging.info(reform_forward_msg(event.message.fwd_messages))
+                            APP_LOGGER.info(reform_attachments(event.message.attachments))
+                            APP_LOGGER.info(reform_forward_msg(event.message.fwd_messages))
 
                             session_api.messages.send(
                                 peer_id=userId,
@@ -103,13 +104,38 @@ def main_loop(connected_ids, session_api, longpoll):
                                 attachment=reform_attachments(event.message.attachments),
                             )
 
-                logging.info('Event handling ended')
+                APP_LOGGER.info('Event handling ended')
         except Exception as e:
-            logging.exception(e)
+            APP_LOGGER.exception(e)
 
-        logging.info('Server stopped')
+
+def setup_logger():
+    global APP_LOGGER
+
+    log_formatter = logging.Formatter('%(asctime)s %(levelname)s %(funcName)s(%(lineno)d) %(message)s')
+
+    log_file = 'server.log'
+
+    my_handler = RotatingFileHandler(
+        log_file,
+        mode='a',
+        maxBytes=(5 * 1024 * 1024),
+        backupCount=2,
+        encoding=None,
+        delay=False
+    )
+
+    my_handler.setFormatter(log_formatter)
+    my_handler.setLevel(logging.INFO)
+
+    APP_LOGGER = logging.getLogger('root')
+    APP_LOGGER.setLevel(logging.INFO)
+
+    APP_LOGGER.addHandler(my_handler)
 
 
 if __name__ == '__main__':
-    logging.basicConfig(filename="server.log", level=logging.INFO)
-    main_loop(get_subscribers(), load_settings())
+    setup_logger()
+    main_tread = threading.Thread(target=main_loop, args=(get_subscribers(), *load_settings()))
+    main_tread.start()
+
