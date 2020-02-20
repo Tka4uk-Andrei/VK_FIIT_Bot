@@ -1,3 +1,5 @@
+import logging
+
 import vk_api
 from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
 
@@ -9,101 +11,105 @@ CONFIG_FILE_NAME = "data/config.txt"
 
 def reform_attachments(attachments):
     attachment_arr = []
-    if attachments.__len__() > 0:
+    if attachments:
         for attachment in attachments:
-            if u'owner_id' in attachment[u'type'] and u'id' in attachment[u'type']:
-                if u'access_key' in attachment[u'type']:
-                    attachment_arr.append(str(attachment[u'type'] + \
-                                              str(attachment[attachment[u'type']][u'owner_id']) + '_' + \
-                                              str(attachment[attachment[u'type']][u'id']) + '_' + \
-                                              attachment[attachment[u'type']][u'access_key']))
-                else:
-                    attachment_arr.append(str(attachment[u'type'] + \
-                                              str(attachment[attachment[u'type']][u'owner_id']) + '_' + \
-                                              str(attachment[attachment[u'type']][u'id'])))
+            if 'owner_id' in attachment['type'] and 'id' in attachment['type']:
+                tpe = attachment['type']
+                att = f'{type}{attachment[type]["owner_id"]}_{attachment[type]["id"]}'
+                if 'access_key' in attachment['type']:
+                    att += f'_{attachment[type]["access_key"]}'
+
+                attachment_arr.append(att)
+
     return attachment_arr
 
 
 def reform_forward_msg(forward_msgs):
-    forward_msg_str = ''
-    if forward_msgs.__len__() > 0:
-        for i in range(forward_msgs.__len__() - 1):
-            # for attachment in attachments:
-            forward_msg = forward_msgs[i]
-            forward_msg_str = forward_msg_str + str(forward_msg[u'id']) + ','
+    forward_msg = str()
+    if forward_msgs:
+        for msg in forward_msgs[:-1]:
+            forward_msg = f'{msg}{msg["id"]} ,'
 
-        forward_msg = forward_msgs[forward_msgs.__len__() - 1]
-        forward_msg_str = forward_msg_str + str(forward_msg[u'id'])
+        forward_msg = f'{forward_msgs[-1]}{forward_msg["id"]}'
 
-    return forward_msg_str
+    return forward_msg
 
 
 print ('Launching...')
 
-# Read global constants
-with open(CONFIG_FILE_NAME, "r") as configs:
-    VK_API_KEY = configs.readline()[0:-1]
-    VK_VERSION = configs.readline()[0:-1]
-    VK_GROUP_ID = configs.readline()
 
-vkSession = vk_api.VkApi(token=VK_API_KEY)
-sessionApi = vkSession.get_api()
-longpoll = VkBotLongPoll(vkSession, 191500224, 100)
+def load_settings():
+    with open(CONFIG_FILE_NAME, "r") as configs:
+        api_key = configs.readline()[0:-1]
+        group_id = configs.readline()
 
-connectedIds = []
-# read added early ids from file
-with open(SUBSCRIPTION_ID_FILE_NAME, "r") as subscribedIds:
-    for line in subscribedIds:
-        connectedIds.append(int(line))
+    vk_session = vk_api.VkApi(token=api_key)
+    session_api = vk_session.get_api()
+    longpoll = VkBotLongPoll(vk_session, group_id, 100)
 
-messageCounter = 0
-# read message id from where you should start
-with open(LATEST_MSG_ID_FILE_NAME, "r") as msgId:
-    for line in msgId:
-        messageCounter = int(line)
+    return session_api, longpoll
 
-while True:
-    print ('Server started listening')
-    try:
-        for event in longpoll.listen():
-            print ('Event handling start...')
-            if event.type == VkBotEventType.MESSAGE_NEW:
-                # handle message from subscribed user
-                if event.from_user:
-                    # receive users id
-                    fromId = event.obj.message[u'from_id']
-                    print ('message from user with id ' + str(event.obj.message[u'from_id']) + ' received')
 
-                    # if from_id is new, we'll add it to special list, then write updated info to file
-                    if not (fromId in connectedIds):
-                        print('new user connected / record added')
-                        connectedIds.append(fromId)
-                        with open(SUBSCRIPTION_ID_FILE_NAME, "w") as subscribedIds:
-                            for userId in connectedIds:
-                                subscribedIds.write(str(userId) + '\n')
+def get_subscribers():
+    with open(SUBSCRIPTION_ID_FILE_NAME, "r") as user_ids:
+        return [int(lne) for lne in user_ids]
 
-                    # mark message as read
-                    sessionApi.messages.markAsRead(start_message_id=[event.message[u'id']],
-                                                   peer_id=event.message[u'peer_id'])
+def get_messages_ids():
+    messageCounter = 0
+    # read message id from where you should start
+    with open(LATEST_MSG_ID_FILE_NAME, "r") as msg_id:
+        return [int(lne) for lne in msg_id]
 
-                # handle message from group chat
-                elif event.from_chat and event.message.text != '' and event.message.text[0:2] == '//':
-                    print ('message from chat')
-                    # notify subscribed users
-                    for userId in connectedIds:
-                        # switch 'peer_id' to broadcast list
-                        # forward messages not supported by VK API for bots??? W H A T !? :\
-                        print(reform_attachments(event.message.attachments))
-                        print(reform_forward_msg(event.message.fwd_messages))
-                        sessionApi.messages.send(peer_id=userId,
-                                                 random_id=0,
-                                                 message=event.message.text,
-                                                 attachment=reform_attachments(event.message.attachments))
-            #                   ,
-            #                                                forward_messages=reform_forward_msg(event.message.fwd_messages))
 
-            print ('Event handling ended')
-    except Exception as e:
-        print (e)
-        pass
-    print ('The End')
+def main_loop(connected_ids, session_api, longpoll):
+    while True:
+        logging.info('Server started listening')
+        try:
+            for event in longpoll.listen():
+                logging.info('Event handling start...')
+                if event.type == VkBotEventType.MESSAGE_NEW:
+                    # handle message from subscribed user
+                    if event.from_user:
+                        # receive users id
+                        from_id = event.obj.message[u'from_id']
+                        logging.info(f'message from user with id {event.obj.message["from_id"]} received')
+
+                        # if from_id is new, we'll add it to special list, then write updated info to file
+                        if from_id not in connected_ids:
+                            logging.info('new user connected / record added')
+                            with open(SUBSCRIPTION_ID_FILE_NAME, "a") as f:
+                                f.write(f'\n{from_id}')
+
+                        # mark message as read
+                        session_api.messages.markAsRead(
+                            start_message_id=[event.message['id']],
+                            peer_id=event.message['peer_id'],
+                        )
+
+                    # handle message from group chat
+                    elif event.from_chat and event.message.text != '' and event.message.text[0:2] == '//':
+                        logging.info('message from chat')
+                        # notify subscribed users
+                        for userId in connected_ids:
+                            # switch 'peer_id' to broadcast list
+                            # forward messages not supported by VK API for bots??? W H A T !? :\
+                            logging.info(reform_attachments(event.message.attachments))
+                            logging.info(reform_forward_msg(event.message.fwd_messages))
+
+                            session_api.messages.send(
+                                peer_id=userId,
+                                random_id=0,
+                                message=event.message.text,
+                                attachment=reform_attachments(event.message.attachments),
+                            )
+
+                logging.info('Event handling ended')
+        except Exception as e:
+            logging.exception(e)
+
+        logging.info('Server stopped')
+
+
+if __name__ == '__main__':
+    logging.basicConfig(filename="server.log", level=logging.INFO)
+    main_loop(get_subscribers(), load_settings())
