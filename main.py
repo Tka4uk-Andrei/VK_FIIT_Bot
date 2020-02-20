@@ -40,8 +40,9 @@ def reform_forward_msg(forward_msgs):
 
 def load_settings():
     with open(CONFIG_FILE_NAME, "r") as configs:
-        api_key = configs.readline().split(',')[0]
-        group_id = configs.readline()
+        lines = configs.read().splitlines()
+        api_key = lines[0]
+        group_id = int(lines[2])
 
     vk_session = vk_api.VkApi(token=api_key)
     session_api = vk_session.get_api()
