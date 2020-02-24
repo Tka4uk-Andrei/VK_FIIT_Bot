@@ -38,7 +38,7 @@ def reform_forward_msg(forward_msgs):
     return forward_msg_str
 
 
-print ('Launching...')
+print('Launching...')
 
 # Read global constants
 with open(CONFIG_FILE_NAME, "r") as configs:
@@ -63,16 +63,16 @@ with open(LATEST_MSG_ID_FILE_NAME, "r") as msgId:
         messageCounter = int(line)
 
 while True:
-    print ('Server started listening')
+    print('Server started listening')
     try:
         for event in longpoll.listen():
-            print ('Event handling start...')
+            print('Event handling start...')
             if event.type == VkBotEventType.MESSAGE_NEW:
                 # handle message from subscribed user
                 if event.from_user:
                     # receive users id
                     fromId = event.obj.message[u'from_id']
-                    print ('message from user with id ' + str(event.obj.message[u'from_id']) + ' received')
+                    print('message from user with id ' + str(event.obj.message[u'from_id']) + ' received')
 
                     # if from_id is new, we'll add it to special list, then write updated info to file
                     if not (fromId in connectedIds):
@@ -88,7 +88,7 @@ while True:
 
                 # handle message from group chat
                 elif event.from_chat and event.message.text != '' and event.message.text[0:2] == '//':
-                    print ('message from chat')
+                    print('message from chat')
                     # notify subscribed users
                     for userId in connectedIds:
                         # switch 'peer_id' to broadcast list
@@ -102,8 +102,8 @@ while True:
             #                   ,
             #                                                forward_messages=reform_forward_msg(event.message.fwd_messages))
 
-            print ('Event handling ended')
+            print('Event handling ended')
     except Exception as e:
-        print (e)
+        print(e)
         pass
-    print ('The End')
+    print('The End')
