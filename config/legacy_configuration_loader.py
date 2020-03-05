@@ -26,23 +26,20 @@ class LegacyConfigurationLoader:
 
 
     def get_subscriber_ids(self):
-        return self._message_ids
+        return self._subscriber_ids
 
 
-    def save_subscriber_ids(self, ids = self._message_ids):
-        self._message_ids = ids
+    def save_subscriber_ids(self, ids = None):
+        if (ids == None):
+            ids = self._subscriber_ids
+        self._subscriber_ids = ids
         with open(self.__SUBSCRIPTION_ID_FILE_NAME, "a") as f:
-            for i in self._message_ids:
+            for i in self._subscriber_ids:
                 f.write(f'{i}')
 
 
     def get_api_key(self):
         return self.__api_key
-    
-
-    def add_group_id(self, id):
-        self._subscriber_ids.append(id)
-
 
     def get_group_id(self):
         return self.__group_id
