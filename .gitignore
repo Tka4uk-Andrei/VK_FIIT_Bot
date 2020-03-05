@@ -1,4 +1,7 @@
 /venv/
 /.idea
 /data
-/server.log
+server.log
+/.vscode
+/config/__pycache__
+/strategies/__pycache__
