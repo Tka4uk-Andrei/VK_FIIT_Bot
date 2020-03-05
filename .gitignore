@@ -2,3 +2,6 @@
 /.idea
 /data
 server.log
+/.vscode
+/config/__pycache__
+/strategies/__pycache__
