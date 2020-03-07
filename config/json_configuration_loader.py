@@ -45,7 +45,7 @@ class JsonConfiguration:
     def get_config_version(self):
         return self.__config_version
 
-    def get_vk_api_key(self):
+    def get_api_key(self):
         return self.__vk_api_key
 
     def get_vk_api_version(self):

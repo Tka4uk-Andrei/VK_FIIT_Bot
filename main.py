@@ -5,12 +5,12 @@ import threading
 import vk_api
 from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
 
-from config.legacy_configuration_loader import LegacyConfigurationLoader
-from strategies.legacy_strategy import LegacyStrategy
+from config.json_configuration_loader import JsonConfiguration
+from strategies.advanced_strategy import AdvancedStrategy
 
 APP_LOGGER = logging
 
-def main_loop(configuration, strategy):
+def main_loop(configuration, strategy, longpoll):
     APP_LOGGER.info('Server started listening')
 
     while True:
@@ -53,15 +53,15 @@ def setup_logger(fileFlag):
 
 
 if __name__ == '__main__':
-    setup_logger(fileFlag=True)
+    setup_logger(fileFlag=False)
 
     # setup configuration
-    configuration = LegacyConfigurationLoader()
+    configuration = JsonConfiguration()
     # setup connection to VK API
     vk_session = vk_api.VkApi(token=configuration.get_api_key())
     session_api = vk_session.get_api()
     longpoll = VkBotLongPoll(vk_session, configuration.get_group_id(), 100)
     # setup strategy
-    strategy = LegacyStrategy(session_api, APP_LOGGER, configuration)
+    strategy = AdvancedStrategy(session_api, APP_LOGGER, configuration)
     
-    main_loop(configuration, strategy)
+    main_loop(configuration, strategy, longpoll)
