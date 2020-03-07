@@ -3,6 +3,7 @@ from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
 
 import config.legacy_configuration_loader
 
+
 class LegacyStrategy:
 
     def __init__(self, session_api, logger, legacy_config):
@@ -61,21 +62,21 @@ class LegacyStrategy:
             elif event.from_chat and event.message.text != '' and event.message.text[0:2] == '//':
                 self.__logger.info('message from chat')
                 # notify subscribed users
-                for userId in self.__configuration.get_subscriber_ids():
+                # for userId in :
 
-                    self.__logger.info(self.__reform_attachments(
-                        event.message.attachments))
-                    self.__logger.info(self.__reform_forward_msg(
-                        event.message.fwd_messages))
+                self.__logger.info(self.__reform_attachments(
+                    event.message.attachments))
+                self.__logger.info(self.__reform_forward_msg(
+                    event.message.fwd_messages))
 
-                    # TODO switch 'peer_id' to broadcast list
-                    # forward messages not supported by VK API for bots??? W H A T !? :\
-                    self.__session_api.messages.send(
-                        peer_id=userId,
-                        random_id=0,
-                        message=event.message.text,
-                        attachment=self.__reform_attachments(
-                            event.message.attachments),
-                    )
+                # TODO switch 'peer_id' to broadcast list
+                # forward messages not supported by VK API for bots??? W H A T !? :\
+                self.__session_api.messages.send(
+                    user_ids=self.__configuration.get_subscriber_ids(),
+                    random_id=0,
+                    message=event.message.text,
+                    attachment=self.__reform_attachments(
+                        event.message.attachments),
+                )
 
                 self.__logger.info('Event handling ended')
